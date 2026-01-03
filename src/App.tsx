@@ -3,7 +3,7 @@ import { useEffect,  useState } from 'react'
 import Select from 'react-select';
 
 
-const API_KEY = "removed";
+const API_KEY = "Get your free API key @ finnhub";
 
 
 interface Stock{
