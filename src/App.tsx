@@ -73,11 +73,18 @@ function SearchandSelect({stockList, setStockList}:StockListProps){
 const StockListItem = React.memo(function StockListItem({stock,handleDelete}:{stock:Stock, handleDelete:()=>void}){
 
   const [stockCurrentPrice,setStockCurrentPrice] = useState<number>(0.0);
+  const [isBull, setIsBull] = useState(true);
+
+  function isBullClass(currentValue:number){
+    setIsBull((currentValue>stockCurrentPrice)?true:false);
+  }
+
   useEffect(()=>{
     async function getStockCurrentPrice(){
     const stockPrice = await fetch(`https://finnhub.io/api/v1/quote?symbol=${stock.symbol}&token=${API_KEY}`);
     const currentPrice = await stockPrice.json();
     console.log(currentPrice);
+    isBullClass(currentPrice["c"]);
     setStockCurrentPrice(currentPrice["c"]);
     }
     console.log(stock.symbol);
@@ -92,7 +99,7 @@ const StockListItem = React.memo(function StockListItem({stock,handleDelete}:{st
     <>
       <td>{stock.name}</td>
       <td>{stock.symbol}</td>
-      <td>{stockCurrentPrice}</td>
+      <td className={isBull?"bull":"bear"}>{stockCurrentPrice}</td>
       <td><button className="btn btn-danger" onClick={handleDelete}>X</button></td>
     </>
   )
