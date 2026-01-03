@@ -1,21 +1,8 @@
-import { useEffect, useState } from 'react'
+import React from 'react';
+import { useEffect,  useState } from 'react'
 import Select from 'react-select';
 
-// const socket = new WebSocket('wss://ws.finnhub.io?token=removed');
 
-// socket.addEventListener('open', function (event) {
-//     socket.send(JSON.stringify({'type':'subscribe', 'symbol': 'AAPL'}))
-//     socket.send(JSON.stringify({'type':'subscribe', 'symbol': 'BINANCE:BTCUSDT'}))
-//     socket.send(JSON.stringify({'type':'subscribe', 'symbol': 'IC MARKETS:1'}))
-// });
-
-// socket.addEventListener('message', function (event) {
-//     console.log('Message from server ', event.data);
-// });
-
-// const unsubscribe = function(symbol:string) {
-//     socket.send(JSON.stringify({'type':'unsubscribe','symbol': symbol}))
-// }
 const API_KEY = "removed";
 
 
@@ -35,11 +22,16 @@ function SearchandSelect({stockList, setStockList}:StockListProps){
   const [selectedOption, setSelectedOption] = useState<{value:string,label:string} | null>(null);
 
   useEffect(()=>{
+
     if(!selectedOption)
         return;
-    setStockList([...stockList,{name:selectedOption.label,symbol:selectedOption.value}]);
+
+    if(stockList.some((s)=>s.symbol === selectedOption.value))
+      return;
+
+    setStockList(prev=>[...prev,{name:selectedOption.label,symbol:selectedOption.value}]);
   }
-  ,[selectedOption,setStockList]);
+  ,[selectedOption]);
 
   const [options,setOptions] = useState<Array<{value:string,label:string}>>();
 
@@ -78,7 +70,7 @@ function SearchandSelect({stockList, setStockList}:StockListProps){
 
 
 
-function StockListItem({stock}:{stock:Stock}){
+const StockListItem = React.memo(function StockListItem({stock,handleDelete}:{stock:Stock, handleDelete:()=>void}){
 
   const [stockCurrentPrice,setStockCurrentPrice] = useState<number>(0.0);
   useEffect(()=>{
@@ -88,44 +80,60 @@ function StockListItem({stock}:{stock:Stock}){
     console.log(currentPrice);
     setStockCurrentPrice(currentPrice["c"]);
     }
+    console.log(stock.symbol);
+	  getStockCurrentPrice();
     const currentPriceInterval = setInterval(getStockCurrentPrice,30000);
     return ()=>{
       clearInterval(currentPriceInterval);
     }
-  },[]);
+  },[stock.symbol]);
   
   return(
     <>
       <td>{stock.name}</td>
       <td>{stock.symbol}</td>
       <td>{stockCurrentPrice}</td>
+      <td><button className="btn btn-danger" onClick={handleDelete}>X</button></td>
     </>
   )
-}
+});
 
-function StockList({stockList}:{stockList:Stock[]}){
+function StockList({stockList,handleDelete}:{stockList:Stock[],handleDelete:(key:string)=>void}){
   if(!stockList)
     return;
   return(
   <>
+  <table className="table table-striped">
     <th>Name</th>
     <th>Symbol</th>
     <th>current Price</th>
+    <tbody>
     {stockList.map((stock)=>(
       <tr>
-        <StockListItem key={stock.symbol} stock={stock}/>
+        <StockListItem key={stock.symbol} stock={stock} handleDelete={()=>handleDelete(stock.symbol)}/>
       </tr>
       ))}
+    </tbody>
+  </table>
   </>
   );
 }
 
 function App() {
+
   const [stockList, setStockList] = useState<Stock[]>([]);
+
+  function handleDelete(key:string){
+    const updatedList = stockList.filter((stock)=>stock.symbol!==key);
+    console.log(updatedList);
+    setStockList(updatedList);
+  };
+
   return (
     <>
+    <h2>Track-a-Stock</h2>
       <SearchandSelect stockList={stockList} setStockList={setStockList}/>
-      <StockList stockList={stockList}/>
+      <StockList stockList={stockList} handleDelete={(handleDelete)}/>
     </>
   )
 }
