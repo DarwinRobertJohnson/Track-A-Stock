@@ -3,7 +3,7 @@ import { useEffect,  useState } from 'react'
 import Select from 'react-select';
 
 
-const API_KEY = "Get your free API key @ finnhub";
+const API_KEY = import.meta.env.VITE_API_KEY;
 
 
 interface Stock{
@@ -13,10 +13,12 @@ interface Stock{
 
 interface StockListProps{
   stockList:Stock[],
-  setStockList: React.Dispatch<React.SetStateAction<Stock[]>>
+  setStockList: React.Dispatch<React.SetStateAction<Stock[]>>,
+  setFetchError: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-function SearchandSelect({stockList, setStockList}:StockListProps){
+
+function SearchandSelect({stockList, setStockList, setFetchError}:StockListProps){
 
 
   const [selectedOption, setSelectedOption] = useState<{value:string,label:string} | null>(null);
@@ -42,13 +44,23 @@ function SearchandSelect({stockList, setStockList}:StockListProps){
       setOptions([]);
       return;
     }
-    const fetchData = await fetch(`https://finnhub.io/api/v1/search?q=${inputValue}&exchange=US&token=${API_KEY}`);
+    let fetchData;
+    try{
+    fetchData = await fetch(`https://finnhub.io/api/v1/search?q=${inputValue}&exchange=US&token=${API_KEY}`);
+    setFetchError(false);
+  }catch(e){
+      console.log("error fetching data",e);
+      setFetchError(true);
+    }
+
+    if(!fetchData)
+      return;
     const jsonData = await fetchData.json();
     
     
     if(jsonData.result.length === 0)
       return;
-    const searchResult = jsonData.result.map((stock)=>{
+    const searchResult = jsonData.result.map((stock:{description:string, symbol:string})=>{
       return {label:stock.description, value:stock.symbol};
     })
     console.log(`search result ${searchResult}`)
@@ -126,9 +138,19 @@ function StockList({stockList,handleDelete}:{stockList:Stock[],handleDelete:(key
   );
 }
 
+
+function FetchError(){
+  return (
+    <>
+      <p>Sorry experiencing issues getting data</p>
+    </>
+  )
+}
+
 function App() {
 
   const [stockList, setStockList] = useState<Stock[]>([]);
+  const [fetchError, setFetchError] = useState(false);
 
   function handleDelete(key:string){
     const updatedList = stockList.filter((stock)=>stock.symbol!==key);
@@ -139,8 +161,11 @@ function App() {
   return (
     <>
     <h2>Track-a-Stock</h2>
-      <SearchandSelect stockList={stockList} setStockList={setStockList}/>
+      <SearchandSelect stockList={stockList} setStockList={setStockList} setFetchError={setFetchError}/>
       <StockList stockList={stockList} handleDelete={(handleDelete)}/>
+      {fetchError &&
+        <FetchError />
+      }
     </>
   )
 }
